@@ -1,3 +1,4 @@
+`timescale 1ns/100ps
 module count_10(
     input wire rst,
     input wire clk,
@@ -7,12 +8,16 @@ module count_10(
 );
     always @ (posedge clk) begin
         if (rst) begin
-            count <= 4'b0;
+            count <= 4'b0000;
             co <= 1'b0;
         end
         else if (en) begin
             if (count == 4'd9) begin
                 count <= 4'b0;
+                co <= 1'b0;
+            end
+            else if(count == 4'd8)begin
+                count <= count + 1'b1;
                 co <= 1'b1;
             end
             else begin
