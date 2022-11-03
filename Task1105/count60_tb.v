@@ -11,14 +11,14 @@ module count60_tb(
         rst = 0;
         clk = 0;
         en = 0;
-        #100
+        #2
         rst = 1;
-        #40
+        #2
         rst = 0;
         en = 1;
     end
     
-    //时钟设计周期为10ns
-    always #10 clk = ~clk;
+    //时钟设计周期为2ns
+    always #1 clk = ~clk;
     count_60 count60(rst,clk,en,count,co);    
 endmodule

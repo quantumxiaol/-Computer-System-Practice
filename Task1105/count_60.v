@@ -36,25 +36,25 @@ endmodule
     input wire clk,
     input wire en,
     output reg [3:0] count,
-    output reg co
+    output co
 );
     always @ (posedge clk or negedge rst) begin
         if (rst) begin
             count <= 4'b0000;
-            co <= 1'b0;
+            //co <= 1'b0;
         end
         else if (en) begin
             if (count == 4'd9) begin
-                //count <= 4'b0;
-                co <= 1'b1;
+                count <= 4'b0;
+                //co <= 1'b1;
             end
             else begin
                 count <= count + 4'b1;
-                co <= 1'b0;
+                //co <= 1'b0;
             end
         end
         
-        //assign co <= count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
+        assign co <= count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
     end
     endmodule
 
@@ -63,25 +63,25 @@ endmodule
     input wire clk,
     input wire en,
     output reg [3:0] count,
-    output reg co
+    output co
 );
     always @ (posedge clk) begin
         if (rst) begin
             count <= 4'b0000;
-            co <= 1'b0;
+            //co <= 1'b0;
         end
         else if (en) begin
             if (count == 4'd5) begin
                 count <= 4'b0;
-                co <= 1'b1;
+                //co <= 1'b1;
             end
             else begin
                 count <= count + 4'd9;
-                co <= 1'b0;
+                //co <= 1'b0;
             end
         end
 
-        //assign co <= count[0]&count[2];  //仅当计数达到5(4'b0101)时，进位为1
+        assign co <= count[0]&count[2];  //仅当计数达到5(4'b0101)时，进位为1
     end
     endmodule
 
