@@ -1,4 +1,4 @@
-module count10_tb(
+module count6_tb(
 
     );
     reg rst;
@@ -18,5 +18,5 @@ module count10_tb(
     end
     
     always #10 clk = ~clk;
-    count_10 count10(rst,clk,en,count,co);    
+    count_6 count6(rst,clk,en,count,co);    
 endmodule

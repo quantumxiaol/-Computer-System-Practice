@@ -5,7 +5,7 @@ module count_6(
     input wire en,
     output reg [3:0] count,
     output reg co
-
+);
     always @ (posedge clk) begin
         if (rst) begin
             count <= 4'b0000;
@@ -14,12 +14,12 @@ module count_6(
         else if (en) begin
             if (count == 4'd5) begin
                 count <= 4'b0;
-                co <= 1'b0;
-            end
-            else if(count == 4'd4)begin
-                count <= count + 1'b1;
                 co <= 1'b1;
             end
+            // else if(count == 4'd4)begin
+            //     count <= count + 1'b1;
+            //     co <= 1'b1;
+            // end
             else begin
                 count <= count + 1'b1;
                 co <= 1'b0;
@@ -30,6 +30,6 @@ module count_6(
 
 
     
-);
+
     
 endmodule
