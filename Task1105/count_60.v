@@ -58,6 +58,7 @@ endmodule
         else begin
             count <= count;
     end
+    end
     assign co <= count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
     endmodule
 
