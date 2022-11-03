@@ -6,7 +6,7 @@ module count_10(
     output reg [3:0] count,
     output reg co
 );
-    always @ (posedge clk) begin
+    always @ (posedge clk or negedge rst) begin
         if (rst) begin
             count <= 4'b0000;
             co <= 1'b0;
