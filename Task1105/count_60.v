@@ -17,7 +17,7 @@ module count_60(
         .count (cout10 ),
         .co    (co1    )
     );    
-    and u_and_10(co10,co,co1)
+    and u_and_10(co10,en,co1)
     count_6 u_count_6(
     	.rst   (rst   ),
         .clk   (clk   ),
@@ -53,6 +53,9 @@ endmodule
                 //co <= 1'b0;
             end
         end
+        else begin
+            count <= count;
+            end
         
         assign co <= count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
     end
@@ -76,9 +79,12 @@ endmodule
                 //co <= 1'b1;
             end
             else begin
-                count <= count + 4'd9;
+                count <= count + 4'd1;
                 //co <= 1'b0;
             end
+        end
+        else begin
+            count <= count;
         end
 
         assign co <= count[0]&count[2];  //仅当计数达到5(4'b0101)时，进位为1
