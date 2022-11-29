@@ -59,7 +59,7 @@ endmodule
             count <= count;
     end
     end
-    assign co <= count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
+    assign co = count[0]&count[3];  //仅当计数达到9(4'b1001)时，进位为1
     endmodule
 
     module count_6(
@@ -89,7 +89,7 @@ endmodule
             count <= count;
         end
     end
-    assign co <= count[0]&count[2];  //仅当计数达到5(4'b0101)时，进位为1
+    assign co = count[0]&count[2];  //仅当计数达到5(4'b0101)时，进位为1
     endmodule
 
 
