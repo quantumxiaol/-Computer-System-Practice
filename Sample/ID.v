@@ -12,6 +12,10 @@ module ID(
     input wire [31:0] inst_sram_rdata,
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
+// 
+    input wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
+// 
+    input wire [`MEM_TO_ID_WD-1:0] mem_to_id_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
@@ -26,6 +30,14 @@ module ID(
     wire wb_rf_we;
     wire [4:0] wb_rf_waddr;
     wire [31:0] wb_rf_wdata;
+
+    wire ex_id_we;
+    wire [4:0] ex_id_waddr;
+    wire [31:0] ex_id_wdata;  
+
+    wire mem_id_we;
+    wire [4:0] mem_id_waddr;
+    wire [31:0] mem_id_wdata;
 
     always @ (posedge clk) begin
         if (rst) begin
@@ -44,6 +56,16 @@ module ID(
     
     assign inst = inst_sram_rdata;
     assign {
+        ex_id_we,
+        ex_id_waddr,
+        ex_id_wdata
+    } = ex_to_id_bus;
+    assign {
+        mem_id_we,
+        mem_id_waddr,
+        mem_id_wdata
+    } = mem_to_id_bus;
+    assign {
         ce,
         id_pc
     } = if_to_id_bus_r;
@@ -52,6 +74,10 @@ module ID(
         wb_rf_waddr,
         wb_rf_wdata
     } = wb_to_rf_bus;
+
+// 数据相关
+//     assign ndata1 = (ex_id_we && rs == ex_id_waddr) ? ex_id_wdata : ((mem_id_we && rs == mem_id_waddr) ? mem_id_wdata : rdata1);
+//     assign ndata2 = (ex_id_we && rt == ex_id_waddr) ? ex_id_wdata : ((mem_id_we && rt == mem_id_waddr) ? mem_id_wdata : rdata2);
 
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
