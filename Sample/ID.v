@@ -75,9 +75,7 @@ module ID(
         wb_rf_wdata
     } = wb_to_rf_bus;
 
-// 数据相关
-//     assign ndata1 = (ex_id_we && rs == ex_id_waddr) ? ex_id_wdata : ((mem_id_we && rs == mem_id_waddr) ? mem_id_wdata : rdata1);
-//     assign ndata2 = (ex_id_we && rt == ex_id_waddr) ? ex_id_wdata : ((mem_id_we && rt == mem_id_waddr) ? mem_id_wdata : rdata2);
+
 
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
@@ -105,6 +103,13 @@ module ID(
     wire [2:0] sel_rf_dst;
 
     wire [31:0] rdata1, rdata2;
+    wire [31:0] ndata1, ndata2;
+
+//  数据相关
+    assign ndata1 = (ex_id_we && rs == ex_id_waddr) ? ex_id_wdata : (
+        (mem_id_we && rs == mem_id_waddr) ? mem_id_wdata : rdata1);
+    assign ndata2 = (ex_id_we && rt == ex_id_waddr) ? ex_id_wdata : (
+        (mem_id_we && rt == mem_id_waddr) ? mem_id_wdata : rdata2);
 
     regfile u_regfile(
     	.clk    (clk    ),
@@ -246,9 +251,10 @@ module ID(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        rdata1,         // 63:32
-        rdata2          // 31:0
+        ndata1,         // 63:32
+        ndata2          // 31:0
     };
+
 
 
     wire br_e;

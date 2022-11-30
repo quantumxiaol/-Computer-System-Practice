@@ -106,14 +106,21 @@ module EX(
     wire [63:0] mul_result;
     wire mul_signed; // 有符号乘法标记
 
+    reg [31:0] mul_ina;
+    reg [31:0] mul_inb;
+
+
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (      ), // 乘法源操作数1
-        .inb        (      ), // 乘法源操作数2
+        .ina        (mul_ina        ), // 乘法源操作数1
+        .inb        (mul_inb        ), // 乘法源操作数2
         .result     (mul_result     ) // 乘法结果 64bit
     );
+
+
+
 
     // DIV part
     wire [63:0] div_result;
