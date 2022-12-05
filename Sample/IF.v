@@ -27,7 +27,7 @@ module IF(
         br_addr
     } = br_bus;
 
-
+//时序逻辑
     always @ (posedge clk) begin
         if (rst) begin
             pc_reg <= 32'hbfbf_fffc;

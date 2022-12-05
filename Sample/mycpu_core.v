@@ -23,10 +23,11 @@ module mycpu_core(
 );
     wire [`IF_TO_ID_WD-1:0] if_to_id_bus;
     wire [`ID_TO_EX_WD-1:0] id_to_ex_bus;
+    //forwording
     wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus;
     wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus;
-    wire [`EX_TO_ID_WD-1:0] ex_to_id_bus;
-    wire [`MEM_TO_ID_WD-1:0] mem_to_id_bus;
+    wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus;
+    wire [`MEM_TO_RF_WD-1:0] mem_to_rf_bus;
     wire [`BR_WD-1:0] br_bus; 
     wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus;
     wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus;
@@ -55,11 +56,10 @@ module mycpu_core(
         .if_to_id_bus    (if_to_id_bus    ),
         .inst_sram_rdata (inst_sram_rdata ),
         .wb_to_rf_bus    (wb_to_rf_bus    ),
+        .ex_to_rf_bus    (ex_to_rf_bus    ),
+        .mem_to_rf_bus   (mem_to_rf_bus   ),
         .id_to_ex_bus    (id_to_ex_bus    ),
-        .br_bus          (br_bus          ),
-
-        .mem_to_id_bus   (mem_to_id_bus   )
-        
+        .br_bus          (br_bus          )
     );
 
     EX u_EX(
@@ -67,6 +67,8 @@ module mycpu_core(
         .rst             (rst             ),
         .stall           (stall           ),
         .id_to_ex_bus    (id_to_ex_bus    ),
+        // .ex_to_id_bus    (ex_to_id_bus    ),
+        .ex_to_rf_bus    (ex_to_rf_bus    ),
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .data_sram_en    (data_sram_en    ),
         .data_sram_wen   (data_sram_wen   ),
@@ -81,7 +83,7 @@ module mycpu_core(
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .data_sram_rdata (data_sram_rdata ),
         .mem_to_wb_bus   (mem_to_wb_bus   ),
-        .mem_to_id_bus   (mem_to_id_bus   )
+        .mem_to_rf_bus   (mem_to_rf_bus   )
     );
     
     
