@@ -62,7 +62,7 @@ module MEM(
         rf_wdata    // 31:0
     };
 
-    assign mem_to_id_bus = {
+    assign mem_to_rf_bus = {
         // mem_pc,     // 69:38
         rf_we,      // 37
         rf_waddr,   // 36:32

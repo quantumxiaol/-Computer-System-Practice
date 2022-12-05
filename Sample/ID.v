@@ -141,6 +141,8 @@ module ID(
     assign sel = inst[2:0];
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq;
+    wire inst_subu, inst_jr, inst_jal, inst_addu;
+    wire inst_bne, inst_sll, inst_or, inst_xor , inst_lw, inst_sw;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -289,7 +291,7 @@ module ID(
 
     assign br_e = inst_beq & rs_eq_rt | inst_jr | inst_jal | inst_bne & ~rs_eq_rt;
     assign br_addr = (inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                     (inst_jr ? data1 : 32'b0) |
+                     (inst_jr ? ndata1 : 32'b0) |
                      (inst_jal ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0) |
                      (inst_bne ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0);
 
