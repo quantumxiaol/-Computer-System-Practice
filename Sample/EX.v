@@ -6,31 +6,46 @@ module EX(
     input wire [`StallBus-1:0] stall,
 
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
+    // LW SW
+    input wire [`LoadBus-1:0] id_load_bus,
+    input wire [`SaveBus-1:0] id_save_bus,
 
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
-// 
+    // 
     output wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus,
 
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata
+    output wire [31:0] data_sram_wdata,
+
+    output wire [3:0] data_ram_sel,
+    output wire [`LoadBus-1:0] ex_load_bus
 );
 
     reg [`ID_TO_EX_WD-1:0] id_to_ex_bus_r;
 
+    reg [`LoadBus-1:0] id_load_bus_r;
+    reg [`SaveBus-1:0] id_save_bus_r;
+
     always @ (posedge clk) begin
         if (rst) begin
             id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
+            id_save_bus_r <= `SaveBus'b0;
+            id_load_bus_r <= `LoadBus'b0;
         end
         // else if (flush) begin
         //     id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
         // end
         else if (stall[2]==`Stop && stall[3]==`NoStop) begin
             id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
+            id_save_bus_r <= `SaveBus'b0;
+            id_load_bus_r <= `LoadBus'b0;
         end
         else if (stall[2]==`NoStop) begin
             id_to_ex_bus_r <= id_to_ex_bus;
+            id_save_bus_r <= id_save_bus;
+            id_load_bus_r <= id_load_bus;
         end
     end
 
@@ -69,6 +84,9 @@ module EX(
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
 
+    wire inst_lb, inst_lbu, inst_lh, inst_lhu, inst_lw;
+    wire inst_sb, inst_sh, inst_sw;
+
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
 
@@ -101,6 +119,38 @@ module EX(
         rf_waddr,       // 36:32
         ex_result       // 31:0
     };
+
+
+
+    assign {
+        inst_lb,
+        inst_lbu,
+        inst_lh,
+        inst_lhu,
+        inst_lw
+    } = id_load_bus_r;
+
+    assign {
+        inst_sb,
+        inst_sh,
+        inst_sw
+    } = id_save_bus_r;
+
+    assign ex_load_bus = {
+        inst_lb,
+        inst_lbu,
+        inst_lh,
+        inst_lhu,
+        inst_lw
+    };
+
+    assign data_ram_sel = inst_lw | inst_sw ? 4'b1111 : 4'b0000;
+    assign data_sram_en = data_ram_en;
+    assign data_sram_wen = {4{data_ram_wen}} & data_ram_sel;
+    assign data_sram_addr = ex_result;
+    assign data_sram_wdata = rf_rdata2;
+
+
 
     // MUL part
     wire [63:0] mul_result;
