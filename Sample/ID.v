@@ -242,50 +242,121 @@ module ID(
         .out (rt_d )
     );
 
-    // 算术运算指令
-    assign inst_addiu   = op_d[6'b00_1001];
-    assign inst_addu    = op_d[6'b00_0000] & func_d[6'b10_0001];
-    assign inst_add     = op_d[6'b00_0000] & func_d[6'b10_0000];
-    assign inst_addi    = op_d[6'b00_1000];
-
-    assign inst_sub     = op_d[6'b00_0000] & func_d[6'b10_0010];
-    assign inst_subu    = op_d[6'b00_0000] & func_d[6'b10_0011];     
-
-    assign inst_slt     = op_d[6'b00_0000] & func_d[6'b10_1010];
-    assign inst_slti    = op_d[6'b00_1010];
-    assign inst_sltu    = op_d[6'b00_0000] & func_d[6'b10_1011];
-    assign inst_sltiu   = op_d[6'b00_1011];
-
-    // 逻辑运算指令
-    assign inst_ori     = op_d[6'b00_1101];
-    assign inst_lui     = op_d[6'b00_1111];
-    assign inst_or      = op_d[6'b00_0000] & func_d[6'b10_0101];
-    assign inst_xor     = op_d[6'b00_0000] & func_d[6'b10_0110];    
+    // """算术运算指令"""
     
-    // 移位指令
-    assign inst_sll     = op_d[6'b00_0000] & func_d[6'b00_0000];
+    // 加（可产生溢出例外）
+    assign inst_add     = op_d[6'b00_0000] & func_d[6'b10_0000];    
+    // 加立即数（可产生溢出例外）
+    assign inst_addi    = op_d[6'b00_1000];    
+    // 加（不产生溢出例外）
+     assign inst_addu    = op_d[6'b00_0000] & func_d[6'b10_0001];   
+    // 加立即数（不产生溢出例外）
+    assign inst_addiu   = op_d[6'b00_1001];    
+    // 减（可产生溢出例外）
+    assign inst_sub     = op_d[6'b00_0000] & func_d[6'b10_0010];    
+    // 减（不产生溢出例外）
+    assign inst_subu    = op_d[6'b00_0000] & func_d[6'b10_0011];    
+    // 有符号小于置 1
+    assign inst_slt     = op_d[6'b00_0000] & func_d[6'b10_1010];    
+    // 有符号小于立即数设置 1
+    assign inst_slti    = op_d[6'b00_1010];    
+    // 无符号小于设置 1
+    assign inst_sltu    = op_d[6'b00_0000] & func_d[6'b10_1011];    
+    // 无符号小于设置 1
+    assign inst_sltiu   = op_d[6'b00_1011];    
+    // 有符号字除
+    // 无符号字除
+    // 有符号字乘
+    // 无符号字乘
+
+    // """逻辑运算指令"""
+
+    // 位与
+// assign inst_and     = op_d[6'b00_0000] & func_d[6'b10_0100]; 
+    // 立即数位与
+// assign inst_andi    = op_d[6'b00_1100]; 
+    // 寄存器高半部分置立即数
+    assign inst_lui     = op_d[6'b00_1111];    
+    // 位或非
+// assign inst_nor     = op_d[6'b00_0000] & func_d[6'b10_0111]; 
+    // 位或
+    assign inst_or      = op_d[6'b00_0000] & func_d[6'b10_0101];   
+    // 立即数位或
+    assign inst_ori     = op_d[6'b00_1101];    
+    // 位异或
+    assign inst_xor     = op_d[6'b00_0000] & func_d[6'b10_0110];    
+    // 立即数位异或
+
+   
+    
+    // """移位指令"""
+
+    // 立即数逻辑左移
+    assign inst_sll     = op_d[6'b00_0000] & func_d[6'b00_0000];    
+    // 变量逻辑左移
+// assign inst_sllv     = op_d[6'b00_0000] & func_d[6'b00_0100];
+    // 立即数算术右移
+// assign inst_sla     = op_d[6'b00_0000] & func_d[6'b00_0011];
+    // 变量算术右移
+// assign inst_slav     = op_d[6'b00_0000] & func_d[6'b00_0111];
+    // 立即数逻辑右移
+// assign inst_srl     = op_d[6'b00_0000] & func_d[6'b00_0010];
+    // 变量逻辑右移
+// assign inst_srlv     = op_d[6'b00_0000] & func_d[6'b00_0110];
 
 
-    // 分支跳转指令
+    // """分支跳转指令"""
+
+    // 相等转移
     assign inst_beq     = op_d[6'b00_0100];
-    assign inst_bne     = op_d[6'b00_0101];    
-    assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
+    // 不等转移
+    assign inst_bne     = op_d[6'b00_0101];  
+    // 大于等于 0 转移
+// assign inst_bnez     = op_d[6'b00_0001] & rt_d[6'b0_0001]; 
+    // 大于 0 转移
+// assign inst_bgtz     = op_d[6'b00_0111] & rt_d[6'b0_0000]; 
+    // 小于等于 0 转移
+// assign inst_blez     = op_d[6'b00_0110] & rt_d[6'b0_0000]; 
+    // 小于 0 转移
+// assign inst_bltz     = op_d[6'b00_0001] & rt_d[6'b0_0000];
+    // 小于 0 调用子程序并保存返回地址
+// assign inst_bgtzal     = op_d[6'b00_0001] & rt_d[6'b1_0000];
+    // 大于等于 0 调用子程序并保存返回地址
+// assign inst_bgezal     = op_d[6'b00_0001] & rt_d[6'b1_0001];
+    // 无条件直接跳转
+// assign inst_j     = op_d[6'b00_0010];
+    // 无条件直接跳转至子程序并保存返回地址
     assign inst_jal     = op_d[6'b00_0011];
+    // 无条件寄存器跳转
+    assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
+    // 无条件寄存器跳转至子程序并保存返回地址下
+// assign inst_jral      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
 
 
-    // 访存指令   
-    assign inst_lw      = op_d[6'b10_0011];
-    assign inst_sw      = op_d[6'b10_1011];
+    // """数据移动指令"""
+    // HI 寄存器至通用寄存器
+    // LO 寄存器至通用寄存器
+    // 通用寄存器至 HI 寄存器
+    // 通用寄存器至 LO 寄存器
 
+    // """访存指令"""   
+
+    // 取字节有符号扩展
     assign inst_lb      = op_d[6'b10_0000];
+    // 取字节无符号扩展
     assign inst_lbu     = op_d[6'b10_0100];
+    // 取半字有符号扩展
     assign inst_lh      = op_d[6'b10_0001];
+    // 取半字无符号扩展
     assign inst_lhu     = op_d[6'b10_0101];
+    // 取字
+    assign inst_lw      = op_d[6'b10_0011];
+    // 存字节
     assign inst_sb      = op_d[6'b10_1000];
+    // 存半字
     assign inst_sh      = op_d[6'b10_1001];
-
-
-
+    // 存字
+    assign inst_sw      = op_d[6'b10_1011];
 
 
     // rs to reg1
