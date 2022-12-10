@@ -1,6 +1,12 @@
 `include "lib/defines.vh"
 // 指令解码，同时读取寄存器
 // IF/ID阶段可能会取出经符号扩展为32位的立即数和两个从寄存器中读取的数，放入ID/EX流水线寄存器
+
+// 需要在该级进行指令译码
+// 从寄存器中读取需要的数据
+// 完成数据相关处理
+// 生成发给EX段的控制信号
+
 module ID(
     input wire clk,
     input wire rst,
