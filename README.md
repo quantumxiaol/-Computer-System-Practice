@@ -31,3 +31,9 @@ Dec 10 Li 同步了之前的模10计数器
 
 
 Dec 10 Wang 修改了EX.v程序的对于id_to_ex_bus_r线路的注释错误
+
+
+Dec 11 Liu  添加了/lib/decoder_2_4
+            逻辑运算指令（and、andi、nor）
+            的实现
+            按照助教的提示添加访存处理
