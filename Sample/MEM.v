@@ -19,6 +19,8 @@ module MEM(
 
     input wire [`LoadBus-1:0] ex_load_bus,
 
+    output wire stallreq_for_load,
+
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
     output wire [`MEM_TO_RF_WD-1:0] mem_to_rf_bus
@@ -100,6 +102,8 @@ module MEM(
                         inst_lh     ? {{16{h_data[15]}},h_data} :
                         inst_lhu    ? {{16{1'b0}},h_data} :
                         inst_lw     ? w_data : 32'b0; 
+
+
 
     assign mem_to_wb_bus = {
         mem_pc,     // 69:38

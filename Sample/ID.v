@@ -28,6 +28,8 @@ module ID(
     output wire [`LoadBus-1:0] id_load_bus,
     output wire [`SaveBus-1:0] id_save_bus,
 
+    output wire stallreq_for_bru,
+
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
     output wire [`BR_WD-1:0] br_bus 
@@ -499,6 +501,8 @@ module ID(
         br_addr
     };
     
+    assign stallreq_for_bru = br_e ; //inst_beq | inst_bne | inst_jr | inst_jal;
+
 
 
 endmodule

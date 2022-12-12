@@ -22,6 +22,8 @@ module EX(
     // 
     output wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus,
 
+    output wire stallreq_for_ex,
+
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
