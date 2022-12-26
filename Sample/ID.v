@@ -19,6 +19,8 @@ module ID(
 
     input wire [31:0] inst_sram_rdata,
 
+    input wire ex_id,
+
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
 // 
     input wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus,
@@ -39,6 +41,8 @@ module ID(
     wire [31:0] inst;
     wire [31:0] id_pc;
     wire ce;
+    reg  flag;
+    reg [31:0] buf_inst;
 
     wire wb_rf_we;
     wire [4:0] wb_rf_waddr;
@@ -54,20 +58,29 @@ module ID(
 
     always @ (posedge clk) begin
         if (rst) begin
-            if_to_id_bus_r <= `IF_TO_ID_WD'b0;        
+            if_to_id_bus_r <= `IF_TO_ID_WD'b0; 
+            flag <= 1'b0;    
+            buf_inst <= 32'b0;
         end
         // else if (flush) begin
         //     ic_to_id_bus <= `IC_TO_ID_WD'b0;
         // end
         else if (stall[1]==`Stop && stall[2]==`NoStop) begin
             if_to_id_bus_r <= `IF_TO_ID_WD'b0;
+            flag <= 1'b0; 
         end
         else if (stall[1]==`NoStop) begin
             if_to_id_bus_r <= if_to_id_bus;
+            flag <= 1'b0; 
         end
+        else if (stall[1]==`Stop && stall[2]==`Stop && ~flag) begin
+            flag <= 1'b1;
+            buf_inst <= inst_sram_rdata;
+        end        
     end
     
-    assign inst = inst_sram_rdata;
+
+    assign inst = ce ? flag ? buf_inst : inst_sram_rdata : 32'b0;
     assign {
         ex_rf_we,
         ex_rf_waddr,
@@ -180,16 +193,20 @@ module ID(
     wire inst_ori;  // 寄存器 rs 中的值与 0 扩展至 32 位的立即数 imm 按位逻辑或，结果写入寄存器 rt 中。
     wire inst_lui;  // 将 16 位立即数 imm 写入寄存器 rt 的高 16 位，寄存器 rt 的低 16 位置 0。
     wire inst_or;   // 寄存器 rs 中的值与寄存器 rt 中的值按位逻辑或，结果写入寄存器 rd 中。
-    wire inst_xor;  // 寄存器 rs 中的值与 0 扩展至 32 位的立即数 imm 按位逻辑或，结果写入寄存器 rt 中。
+    wire inst_xor;  // 寄存器 rs 中的值与寄存器 rt 中的值按位逻辑异或，结果写入寄存器 rd 中。
+    wire inst_xori; // 寄存器 rs 中的值与 0 扩展至 32 位的立即数 imm 按位逻辑或，结果写入寄存器 rt 中。
     wire inst_and;  // 寄存器 rs 中的值与寄存器 rt 中的值按位逻辑与，结果写入寄存器 rd 中。
     wire inst_nor;  // 寄存器 rs 中的值与寄存器 rt 中的值按位逻辑或，结果写入寄存器 rd 中。
     wire inst_andi; // 寄存器 rs 中的值与 0 扩展至 32 位的立即数 imm 按位逻辑与，结果写入寄存器 rt 中。
 
 // 移位指令
     wire inst_sll;  // 由立即数 sa 指定移位量，对寄存器 rt 的值进行逻辑左移，结果写入寄存器 rd 中。
-    // wire inst_sla;  // 由立即数 sa 指定移位量，对寄存器 rt 的值进行算术左移，结果写入寄存器 rd 中。
+    wire inst_sla;  // 由立即数 sa 指定移位量，对寄存器 rt 的值进行算术左移，结果写入寄存器 rd 中。
     wire inst_srl;  // 由立即数 sa 指定移位量，对寄存器 rt 的值进行逻辑右移，结果写入寄存器 rd 中。
     wire inst_sra;  // 由立即数 sa 指定移位量，对寄存器 rt 的值进行算术右移，结果写入寄存器 rd 中。
+    wire inst_sllv; // 寄存器 rs 中的值的低 5 位指定移位量，对寄存器 rt 的值进行逻辑左移，结果写入寄存器 rd 中。
+    wire inst_srav; // 寄存器 rs 中的值的低 5 位指定移位量，对寄存器 rt 的值进行算术右移，结果写入寄存器 rd 中。
+    wire inst_srlv; // 寄存器 rs 中的值的低 5 位指定移位量，对寄存器 rt 的值进行逻辑右移，结果写入寄存器 rd 中。
 
 // 分支跳转指令
     wire inst_beq;  // 如果寄存器 rs 的值等于寄存器 rt 的值则转移，否则顺序执行。
@@ -199,6 +216,9 @@ module ID(
                     // 加上该分支指令对应的延迟槽指令的 PC 计算得到。
     wire inst_jr;   // 无条件跳转。跳转目标为寄存器 rs 中的值。
     wire inst_jal;  // 无条件跳转。跳转目标由该分支指令对应的延迟槽指令的 PC 的最高 4 位与立即数 instr_index 左移2 位后的值拼接得到。
+                    // 同时将该分支对应延迟槽指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
+
+    wire inst_jalr; // 无条件跳转。跳转目标为寄存器 rs 中的值。
                     // 同时将该分支对应延迟槽指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
 
 //访存指令
@@ -255,6 +275,19 @@ module ID(
         .out (rt_d )
     );
 
+
+     decoder_5_32 u2_decoder_5_32(
+    	.in  (rd  ),
+        .out (rd_d )
+    );
+
+     decoder_5_32 u3_decoder_5_32(
+    	.in  (sa  ),
+        .out (sa_d )
+    );
+
+
+
     // """算术运算指令"""
     
     // 加（可产生溢出例外）
@@ -299,7 +332,7 @@ module ID(
     // 位异或
     assign inst_xor     = op_d[6'b00_0000] & func_d[6'b10_0110];    
     // 立即数位异或
-
+    assign inst_xori    = op_d[6'b00_1110];
    
     
     // """移位指令"""
@@ -307,15 +340,15 @@ module ID(
     // 立即数逻辑左移
     assign inst_sll     = op_d[6'b00_0000] & func_d[6'b00_0000];    
     // 变量逻辑左移
-// assign inst_sllv     = op_d[6'b00_0000] & func_d[6'b00_0100];
+    assign inst_sllv     = op_d[6'b00_0000] & func_d[6'b00_0100];
     // 立即数算术右移
     assign inst_sra     = op_d[6'b00_0000] & func_d[6'b00_0011];
     // 变量算术右移
-// assign inst_srav     = op_d[6'b00_0000] & func_d[6'b00_0111];
+    assign inst_srav     = op_d[6'b00_0000] & func_d[6'b00_0111];
     // 立即数逻辑右移
     assign inst_srl     = op_d[6'b00_0000] & func_d[6'b00_0010];
     // 变量逻辑右移
-// assign inst_srlv     = op_d[6'b00_0000] & func_d[6'b00_0110];
+    assign inst_srlv     = op_d[6'b00_0000] & func_d[6'b00_0110];
 
 
     // """分支跳转指令"""
@@ -343,7 +376,7 @@ module ID(
     // 无条件寄存器跳转
     assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
     // 无条件寄存器跳转至子程序并保存返回地址下
-// assign inst_jral      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
+    assign inst_jalr      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
 
 
     // """数据移动指令"""
@@ -376,37 +409,37 @@ module ID(
     assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_jr | inst_addu | inst_or | inst_xor | inst_lw | inst_sw;
 
     // pc to reg1
-    assign sel_alu_src1[1] = inst_jal;
+    assign sel_alu_src1[1] = inst_jal | inst_jalr;
 
     // sa_zero_extend to reg1
-    assign sel_alu_src1[2] = inst_sll;
+    assign sel_alu_src1[2] = inst_sll | inst_sra | inst_srl;
 
     
     // rt to reg2
-    assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or | inst_xor;
+    assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_sra | inst_srl ;
     
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw;
+    assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti| inst_sltiu | inst_addi;
 
     // 32'b8 to reg2
-    assign sel_alu_src2[2] = inst_jal;
+    assign sel_alu_src2[2] = inst_jal | inst_jalr;
 
     // imm_zero_extend to reg2
     assign sel_alu_src2[3] = inst_ori;
 
 
 
-    assign op_add = inst_add | inst_addi | inst_addiu | inst_jal | inst_addu | inst_lw | inst_sw;
+    assign op_add = inst_add | inst_addi | inst_addiu | inst_jal | inst_addu | inst_lw | inst_sw| inst_add | inst_addi;
     assign op_sub = inst_subu | inst_sub;
     assign op_slt = inst_slt | inst_slti;
     assign op_sltu = inst_sltu | inst_sltiu;
     assign op_and = inst_and | inst_andi;
     assign op_nor = inst_nor;
     assign op_or = inst_ori | inst_or;
-    assign op_xor = inst_xor;
-    assign op_sll = inst_sll;
-    assign op_srl = inst_srl;
-    assign op_sra = inst_sra;
+    assign op_xor = inst_xor | inst_xori;
+    assign op_sll = inst_sll | inst_sllv;
+    assign op_srl = inst_srl | inst_srlv;
+    assign op_sra = inst_sra | inst_srav;
     assign op_lui = inst_lui;
 
     // alu在 /lib/alu.v中定义，线序正确
@@ -428,16 +461,24 @@ module ID(
     // regfile store enable
     assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_jal | inst_addu| inst_sll | 
                     inst_or | inst_xor | inst_lw | 
-                    inst_add | inst_addi | inst_sub | inst_slt | inst_slti | inst_sltu | inst_sltiu;
+                    inst_add | inst_addi | inst_sub | inst_slt | inst_slti | inst_sltu | inst_sltiu| inst_jalr|
+                    inst_jr| inst_and | inst_andi | inst_nor | inst_sra | inst_srl | inst_srlv | inst_srav;
 
 
 
     // store in [rd]
-    assign sel_rf_dst[0] = inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_add | inst_sub | inst_slt | inst_sltu;
+    assign sel_rf_dst[0] =  inst_sub |inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_add |  
+                            inst_slt | inst_sltu |
+                            inst_and | inst_nor | inst_sra | inst_srl | inst_srlv | inst_srav |inst_sllv ;
+    
+    
     // store in [rt] 
-    assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu | inst_lw | inst_addi | inst_slti | inst_sltiu;
+    assign sel_rf_dst[1] =  inst_ori | inst_lui | inst_addiu | inst_lw | inst_addi | inst_slti | inst_sltiu |
+                            inst_andi | inst_xori     ;
+    
+    
     // store in [31]
-    assign sel_rf_dst[2] = inst_jal;
+    assign sel_rf_dst[2] = inst_jal | inst_jalr;
 
     // sel for regfile address
     assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
@@ -501,7 +542,10 @@ module ID(
         br_addr
     };
     
-    assign stallreq_for_bru = br_e ; //inst_beq | inst_bne | inst_jr | inst_jal;
+    assign stallreq_for_bru = ex_id & 
+    ((ex_rf_we == 1'b1 && ex_rf_waddr == rs) ? `Stop : `NoStop | (ex_rf_we == 1'b1 && ex_rf_waddr == rt) ? `Stop : `NoStop)
+    
+     ; //inst_beq | inst_bne | inst_jr | inst_jal;
 
 
 
