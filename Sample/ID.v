@@ -406,8 +406,11 @@ module ID(
 
 
     // rs to reg1
-    assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_jr | inst_addu | inst_or | inst_xor | inst_lw | inst_sw;
-
+    assign sel_alu_src1[0] =    inst_ori | inst_addiu | inst_sub | inst_subu | inst_jr | inst_addu | inst_or | inst_xor |
+                                inst_lw | inst_sw |inst_lb| inst_lbu  | inst_lh   | inst_lhu| inst_sb | inst_sh |
+                                inst_slti | inst_or | inst_srav | inst_sltu | inst_slt |
+                                inst_sltiu | inst_add | inst_addi | inst_and  | inst_andi| inst_nor| inst_xori  | inst_sllv| inst_srlv 
+                                ;
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_jalr;
 
@@ -416,16 +419,19 @@ module ID(
 
     
     // rt to reg2
-    assign sel_alu_src2[0] = inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_sra | inst_srl ;
+    assign sel_alu_src2[0] =    inst_sub | inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_sra | inst_srl |
+                                inst_srlv | inst_sllv| inst_sra | inst_srav| inst_sltu | inst_slt  | inst_add | inst_and| inst_nor ;
+                                // inst_div | inst_divu |inst_mult | inst_multu;
     
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti| inst_sltiu | inst_addi;
+    assign sel_alu_src2[1] =    inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti| inst_sltiu | inst_addi | 
+                                inst_lb  | inst_lbu   | inst_lh  | inst_lhu | inst_sh | inst_sb;
 
     // 32'b8 to reg2
     assign sel_alu_src2[2] = inst_jal | inst_jalr;
 
     // imm_zero_extend to reg2
-    assign sel_alu_src2[3] = inst_ori;
+    assign sel_alu_src2[3] = inst_ori | inst_andi | inst_xori;
 
 
 
@@ -486,7 +492,7 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = inst_lw; 
+    assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu; 
 
     assign id_to_ex_bus = {
         id_pc,          // 158:127
