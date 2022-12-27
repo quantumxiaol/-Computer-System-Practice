@@ -40,6 +40,8 @@ module mycpu_core(
     wire [3:0] data_ram_sel;
     wire [`SaveBus-1:0] id_save_bus;
     wire [`StallBus-1:0] stall;
+    wire ex_id;
+
 
     // stall
     wire stallreq_for_ex;
@@ -70,6 +72,7 @@ module mycpu_core(
         .ex_to_rf_bus    (ex_to_rf_bus    ),
         .mem_to_rf_bus   (mem_to_rf_bus   ),
         .id_to_ex_bus    (id_to_ex_bus    ),
+        .ex_id           (ex_id           ),
         .id_load_bus     (id_load_bus     ),
         .id_save_bus     (id_save_bus     ),
         .stallreq_for_bru(stallreq_for_bru),
@@ -82,6 +85,7 @@ module mycpu_core(
         .stall           (stall           ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         // .ex_to_id_bus    (ex_to_id_bus    ),
+        .ex_id           (ex_id           ),
         .ex_to_rf_bus    (ex_to_rf_bus    ),
         .ex_to_mem_bus   (ex_to_mem_bus   ),
         .id_load_bus     (id_load_bus     ),

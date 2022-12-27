@@ -28,13 +28,13 @@ module CTRL(
             stall = `StallBus'b001111;
         end
         //  
-        // else if (stallreq_for_bru) begin
-        //     stall = `StallBus'b000111;
-        // end
-
-        else if (stallreq_for_load) begin
-            stall = `StallBus'b000011;
+        else if (stallreq_for_bru) begin
+            stall = `StallBus'b000111;
         end
+
+        // else if (stallreq_for_load) begin
+        //     stall = `StallBus'b000011;
+        // end
 
         else begin
             stall = `StallBus'b0;

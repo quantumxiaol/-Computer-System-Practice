@@ -37,3 +37,7 @@ Dec 11 Liu  添加了/lib/decoder_2_4
             逻辑运算指令（and、andi、nor）
             的实现
             按照助教的提示添加访存处理
+
+
+Dec 26 Liu  添加了缺失的逻辑运算指令的实现
+            添加Stall，多过了1条指令。
