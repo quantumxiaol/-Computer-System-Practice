@@ -133,13 +133,13 @@ module ID(
 
 //  数据相关
     assign ndata1 = ((ex_rf_we && rs == ex_rf_waddr) ? ex_rf_wdata : 32'b0) | 
-                   ((mem_rf_we && rs == mem_rf_waddr) ? mem_rf_wdata : 32'b0) |
-                   ((wb_rf_we && rs == wb_rf_waddr) ? wb_rf_wdata : 32'b0) |
+                   ((!(ex_rf_we && rs == ex_rf_waddr) && (mem_rf_we && rs == mem_rf_waddr)) ? mem_rf_wdata : 32'b0) |
+                   ((!(ex_rf_we && rs == ex_rf_waddr) && !(mem_rf_we && rs == mem_rf_waddr) && (wb_rf_we && rs == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
                    (((ex_rf_we && rs == ex_rf_waddr) || (mem_rf_we && rs == mem_rf_waddr) || (wb_rf_we && rs == wb_rf_waddr)) ? 32'b0 : rdata1);
 
     assign ndata2 = ((ex_rf_we && rt == ex_rf_waddr) ? ex_rf_wdata : 32'b0) | 
-                   ((mem_rf_we && rt == mem_rf_waddr) ? mem_rf_wdata : 32'b0) |
-                   ((wb_rf_we && rt == wb_rf_waddr) ? wb_rf_wdata : 32'b0) |
+                   ((!(ex_rf_we && rt == ex_rf_waddr) && (mem_rf_we && rt == mem_rf_waddr)) ? mem_rf_wdata : 32'b0) |
+                   ((!(ex_rf_we && rt == ex_rf_waddr) && !(mem_rf_we && rt == mem_rf_waddr) && (wb_rf_we && rt == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
                    (((ex_rf_we && rt == ex_rf_waddr) || (mem_rf_we && rt == mem_rf_waddr) || (wb_rf_we && rt == wb_rf_waddr)) ? 32'b0 : rdata2);
 
     regfile u_regfile(
@@ -220,6 +220,14 @@ module ID(
 
     wire inst_jalr; // 无条件跳转。跳转目标为寄存器 rs 中的值。
                     // 同时将该分支对应延迟槽指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
+    wire inst_bgezal;
+    wire inst_j;
+    wire inst_bltz;
+    wire inst_blez;
+    wire inst_bgtz;
+    wire inst_bgez;
+    wire inst_bnez;
+    wire inst_bltzal;
 
 //访存指令
     wire inst_lw;   // 将 base 寄存器的值加上符号扩展后的立即数 offset 得到访存的虚地址，
@@ -358,25 +366,30 @@ module ID(
     // 不等转移
     assign inst_bne     = op_d[6'b00_0101];  
     // 大于等于 0 转移
-// assign inst_bnez     = op_d[6'b00_0001] & rt_d[6'b0_0001]; 
+    assign inst_bnez     = op_d[6'b00_0001] & rt_d[6'b0_0001]; 
     // 大于 0 转移
-// assign inst_bgtz     = op_d[6'b00_0111] & rt_d[6'b0_0000]; 
+    assign inst_bgtz     = op_d[6'b00_0111] & rt_d[6'b0_0000]; 
     // 小于等于 0 转移
-// assign inst_blez     = op_d[6'b00_0110] & rt_d[6'b0_0000]; 
+    assign inst_blez     = op_d[6'b00_0110] & rt_d[6'b0_0000]; 
     // 小于 0 转移
-// assign inst_bltz     = op_d[6'b00_0001] & rt_d[6'b0_0000];
+    assign inst_bltz     = op_d[6'b00_0001] & rt_d[6'b0_0000];
     // 小于 0 调用子程序并保存返回地址
-// assign inst_bgtzal     = op_d[6'b00_0001] & rt_d[6'b1_0000];
+    assign inst_bgtzal     = op_d[6'b00_0001] & rt_d[6'b1_0000];
     // 大于等于 0 调用子程序并保存返回地址
-// assign inst_bgezal     = op_d[6'b00_0001] & rt_d[6'b1_0001];
+    assign inst_bgezal     = op_d[6'b00_0001] & rt_d[6'b1_0001];
+
+    assign inst_bgez = op_d[6'b00_0001] & rt_d[6'b0_0001];
+
     // 无条件直接跳转
-// assign inst_j     = op_d[6'b00_0010];
+    assign inst_j     = op_d[6'b00_0010];
     // 无条件直接跳转至子程序并保存返回地址
     assign inst_jal     = op_d[6'b00_0011];
     // 无条件寄存器跳转
     assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
     // 无条件寄存器跳转至子程序并保存返回地址下
     assign inst_jalr      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
+    // 小于 0 调用子程序并保存返回地址
+    assign inst_bltzal    = op_d[6'b00_0001] & rt_d[6'b1_0000];
 
 
     // """数据移动指令"""
@@ -409,10 +422,11 @@ module ID(
     assign sel_alu_src1[0] =    inst_ori | inst_addiu | inst_sub | inst_subu | inst_jr | inst_addu | inst_or | inst_xor |
                                 inst_lw | inst_sw |inst_lb| inst_lbu  | inst_lh   | inst_lhu| inst_sb | inst_sh |
                                 inst_slti | inst_or | inst_srav | inst_sltu | inst_slt |
+                                inst_bgezal | inst_bltzal |
                                 inst_sltiu | inst_add | inst_addi | inst_and  | inst_andi| inst_nor| inst_xori  | inst_sllv| inst_srlv 
                                 ;
     // pc to reg1
-    assign sel_alu_src1[1] = inst_jal | inst_jalr;
+    assign sel_alu_src1[1] = inst_jal | inst_jalr | inst_bltzal | inst_bgezal;
 
     // sa_zero_extend to reg1
     assign sel_alu_src1[2] = inst_sll | inst_sra | inst_srl;
@@ -456,11 +470,11 @@ module ID(
 
 
     // load and store enable
-    assign data_ram_en = inst_sw|inst_lw;
+    assign data_ram_en = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_sw | inst_sb | inst_sh  ;
 
 
     // write enable
-    assign data_ram_wen = inst_sw;
+    assign data_ram_wen = inst_sw | inst_sb | inst_sh ? 4'b1111 : 4'b0000;
 
 
 
@@ -492,7 +506,7 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu; 
+    assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu ? 1'b1:1'b0; 
 
     assign id_to_ex_bus = {
         id_pc,          // 158:127
@@ -523,11 +537,24 @@ module ID(
 
     assign rs_eq_rt = (ndata1 == ndata2);
 
-    assign br_e = inst_beq & rs_eq_rt | inst_jr | inst_jal | inst_bne & ~rs_eq_rt;
-    assign br_addr = (inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                     (inst_jr ? ndata1 : 32'b0) |
-                     (inst_jal ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0) |
-                     (inst_bne ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0);
+    assign br_e = inst_beq & rs_eq_rt | inst_j | inst_jalr | | inst_jr | inst_jal | inst_bne & ~rs_eq_rt | 
+                  inst_bgez & rs_ge_z | inst_bgtz & rs_gt_z |inst_blez & rs_le_z | inst_bltz & rs_lt_z |
+                  inst_bgezal & rs_ge_z | inst_bltzal & rs_lt_z ;
+                   
+            
+    assign br_addr = 
+                        (inst_beq       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_jr        ? ndata1 : 32'b0) |
+                        (inst_jal       ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0) |
+                        (inst_bne       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_bgez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_bgtz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_blez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_bltz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_bgezal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_bltzal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
+                        (inst_j         ? ({ pc_plus_4[31:28]         ,inst[25:0],2'b0}) : 32'b0) |
+                        (inst_jalr      ? ndata1:32'b0);
 
     assign id_load_bus = {
         inst_lb,
@@ -548,8 +575,8 @@ module ID(
         br_addr
     };
     
-    assign stallreq_for_bru = ex_id & 
-    ((ex_rf_we == 1'b1 && ex_rf_waddr == rs) ? `Stop : `NoStop | (ex_rf_we == 1'b1 && ex_rf_waddr == rt) ? `Stop : `NoStop)
+    assign stallreq_for_bru = ex_id & (& ex_rf_we & (rs == ex_rf_waddr | rt == ex_rf_waddr)) ? `Stop : `NoStop;
+    // ((ex_rf_we == 1'b1 && ex_rf_waddr == rs) ? `Stop : `NoStop | (ex_rf_we == 1'b1 && ex_rf_waddr == rt) ? `Stop : `NoStop)
     
      ; //inst_beq | inst_bne | inst_jr | inst_jal;
 
