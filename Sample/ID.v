@@ -220,14 +220,24 @@ module ID(
 
     wire inst_jalr; // 无条件跳转。跳转目标为寄存器 rs 中的值。
                     // 同时将该分支对应延迟槽指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
-    wire inst_bgezal;
-    wire inst_j;
+
+    wire inst_j;    // 无条件跳转。跳转目标由该分支指令对应的延迟槽指令的 PC 的最高 4 位与立即数 instr_index 左移2 位后的值拼接得到。
     wire inst_bltz;
-    wire inst_blez;
-    wire inst_bgtz;
-    wire inst_bgez;
+    wire inst_blez; // 如果寄存器 rs 的值小于等于 0 则转移，否则顺序执行。转移目标由立即数 offset 左移 2 位并进行有
+                    // 符号扩展的值加上该分支指令对应的延迟槽指令的 PC 计算得到。
+    wire inst_bgtz; // 如果寄存器 rs 的值大于 0 则转移，否则顺序执行。转移目标由立即数 offset 左移 2 位并进行有符号
+                    // 扩展的值加上该分支指令对应的延迟槽指令的 PC 计算得到。
+    wire inst_bgez; // 如果寄存器 rs 的值大于等于 0 则转移，否则顺序执行。转移目标由立即数 offset 左移 2 位并进行有
+                    // 符号扩展的值加上该分支指令对应的延迟槽指令的 PC 计算得到。
     wire inst_bnez;
-    wire inst_bltzal;
+
+    wire inst_bgezal;   // 如果寄存器 rs 的值大于等于 0 则转移，否则顺序执行。转移目标由立即数 offset 左移 2 位并进行有
+                        // 符号扩展的值加上该分支指令对应的延迟槽指令的 PC 计算得到。无论转移与否，将该分支对应延
+                        // 迟槽指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
+
+    wire inst_bltzal;   // 如果寄存器 rs 的值小于 0 则转移，否则顺序执行。转移目标由立即数 offset 左移 2 位并进行有符号
+                        // 扩展的值加上该分支指令对应的延迟槽指令的 PC 计算得到。无论转移与否，将该分支对应延迟槽
+                        // 指令之后的指令的 PC 值保存至第 31 号通用寄存器中。
 
 //访存指令
     wire inst_lw;   // 将 base 寄存器的值加上符号扩展后的立即数 offset 得到访存的虚地址，
@@ -366,19 +376,19 @@ module ID(
     // 不等转移
     assign inst_bne     = op_d[6'b00_0101];  
     // 大于等于 0 转移
-    assign inst_bnez     = op_d[6'b00_0001] & rt_d[6'b0_0001]; 
+    assign inst_bnez     = op_d[6'b00_0001] & rt_d[5'b0_0001]; 
     // 大于 0 转移
-    assign inst_bgtz     = op_d[6'b00_0111] & rt_d[6'b0_0000]; 
+    assign inst_bgtz     = op_d[6'b00_0111] & rt_d[5'b0_0000]; 
     // 小于等于 0 转移
-    assign inst_blez     = op_d[6'b00_0110] & rt_d[6'b0_0000]; 
+    assign inst_blez     = op_d[6'b00_0110] & rt_d[5'b0_0000]; 
     // 小于 0 转移
-    assign inst_bltz     = op_d[6'b00_0001] & rt_d[6'b0_0000];
+    assign inst_bltz     = op_d[6'b00_0001] & rt_d[5'b0_0000];
     // 小于 0 调用子程序并保存返回地址
-    assign inst_bgtzal     = op_d[6'b00_0001] & rt_d[6'b1_0000];
+    assign inst_bgtzal     = op_d[6'b00_0001] & rt_d[5'b1_0000];
     // 大于等于 0 调用子程序并保存返回地址
-    assign inst_bgezal     = op_d[6'b00_0001] & rt_d[6'b1_0001];
-
-    assign inst_bgez = op_d[6'b00_0001] & rt_d[6'b0_0001];
+    assign inst_bgezal     = op_d[6'b00_0001] & rt_d[5'b1_0001];
+    // 大于等于 0 转移
+    assign inst_bgez = op_d[6'b00_0001] & rt_d[5'b0_0001];
 
     // 无条件直接跳转
     assign inst_j     = op_d[6'b00_0010];
@@ -387,9 +397,9 @@ module ID(
     // 无条件寄存器跳转
     assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000] & rt_d[5'b0_0000] & rd_d[5'b0_0000] & sa_d[5'b0_0000];
     // 无条件寄存器跳转至子程序并保存返回地址下
-    assign inst_jalr      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
+    assign inst_jalr      = op_d[6'b00_0000]  & rt_d[5'b0_0000] & func_d[6'b00_1001];
     // 小于 0 调用子程序并保存返回地址
-    assign inst_bltzal    = op_d[6'b00_0001] & rt_d[6'b1_0000];
+    assign inst_bltzal    = op_d[6'b00_0001] & rt_d[5'b1_0000];
 
 
     // """数据移动指令"""
@@ -442,14 +452,18 @@ module ID(
                                 inst_lb  | inst_lbu   | inst_lh  | inst_lhu | inst_sh | inst_sb;
 
     // 32'b8 to reg2
-    assign sel_alu_src2[2] = inst_jal | inst_jalr;
+    assign sel_alu_src2[2] = inst_jal | inst_jalr | inst_bgezal | inst_bltzal;
 
     // imm_zero_extend to reg2
     assign sel_alu_src2[3] = inst_ori | inst_andi | inst_xori;
 
 
 
-    assign op_add = inst_add | inst_addi | inst_addiu | inst_jal | inst_addu | inst_lw | inst_sw| inst_add | inst_addi;
+    assign op_add = inst_add | inst_addi | inst_addiu |  inst_addu |  inst_add | inst_addi |
+                    inst_jal | inst_jalr | inst_bltzal | inst_bgezal |
+                    inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_sw | inst_sb | inst_sh
+                    ;
+
     assign op_sub = inst_subu | inst_sub;
     assign op_slt = inst_slt | inst_slti;
     assign op_sltu = inst_sltu | inst_sltiu;
@@ -480,10 +494,11 @@ module ID(
 
     // regfile store enable
     assign rf_we =  inst_ori | inst_lui | inst_addiu | inst_subu | inst_addu | inst_add | inst_addi | inst_sub |
-                    inst_jr | inst_jal |  inst_sll | inst_sllv | inst_sra | inst_srl | inst_srlv | inst_srav|
+                    inst_jr | inst_jal | inst_jalr | inst_bgezal | inst_bltzal |
+                    inst_sll | inst_sllv | inst_sra | inst_srl | inst_srlv | inst_srav |
                     inst_or | inst_xor | inst_xori | inst_and | inst_andi | inst_nor |
                     inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu |
-                    inst_slt | inst_slti | inst_sltu | inst_sltiu| inst_jalr
+                    inst_slt | inst_slti | inst_sltu | inst_sltiu
                      ;
 
 
@@ -542,6 +557,10 @@ module ID(
     assign pc_plus_4 = id_pc + 32'h4;
 
     assign rs_eq_rt = (ndata1 == ndata2);
+    assign rs_ge_z  = (!ndata1[31]); // >=跳转
+    assign rs_gt_z  = ((!ndata1[31]) && ndata1!=0); // >跳转
+    assign rs_le_z  = (ndata1 == 0 | ndata1[31]); // <=跳转
+    assign rs_lt_z  = (ndata1[31]); // <跳转
 
     assign br_e = inst_beq & rs_eq_rt | inst_j | inst_jalr | | inst_jr | inst_jal | inst_bne & ~rs_eq_rt | 
                   inst_bgez & rs_ge_z | inst_bgtz & rs_gt_z |inst_blez & rs_le_z | inst_bltz & rs_lt_z |
@@ -554,7 +573,7 @@ module ID(
                         (inst_jal       ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0)              |
                         (inst_j         ? ({ pc_plus_4[31:28],inst[25:0],2'b0}) : 32'b0)            |
                         (inst_jalr      ? ndata1:32'b0)                                             |
-                                               
+
                         (inst_bne       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
                         (inst_bgez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
                         (inst_bgtz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
