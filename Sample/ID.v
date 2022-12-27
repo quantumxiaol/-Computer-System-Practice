@@ -385,7 +385,7 @@ module ID(
     // 无条件直接跳转至子程序并保存返回地址
     assign inst_jal     = op_d[6'b00_0011];
     // 无条件寄存器跳转
-    assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000];
+    assign inst_jr      = op_d[6'b00_0000] & func_d[6'b00_1000] & rt_d[5'b0_0000] & rd_d[5'b0_0000] & sa_d[5'b0_0000];
     // 无条件寄存器跳转至子程序并保存返回地址下
     assign inst_jalr      = op_d[6'b00_0000]  & rt_d[6'b0_0000] & func_d[6'b00_1001];
     // 小于 0 调用子程序并保存返回地址
@@ -419,11 +419,11 @@ module ID(
 
 
     // rs to reg1
-    assign sel_alu_src1[0] =    inst_ori | inst_addiu | inst_sub | inst_subu | inst_jr | inst_addu | inst_or | inst_xor |
-                                inst_lw | inst_sw |inst_lb| inst_lbu  | inst_lh   | inst_lhu| inst_sb | inst_sh |
-                                inst_slti | inst_or | inst_srav | inst_sltu | inst_slt |
-                                inst_bgezal | inst_bltzal |
-                                inst_sltiu | inst_add | inst_addi | inst_and  | inst_andi| inst_nor| inst_xori  | inst_sllv| inst_srlv 
+    assign sel_alu_src1[0] =    inst_lw | inst_sw |inst_lb| inst_lbu  | inst_lh | inst_lhu| inst_sb | inst_sh |
+                                inst_ori | inst_addiu | inst_or | inst_xor | inst_and  | inst_andi| inst_nor | inst_xori |
+                                inst_sub | inst_subu | inst_add | inst_addi | inst_addu |
+                                inst_jr | inst_bgezal | inst_bltzal |
+                                inst_slti | inst_or | inst_srav | inst_sltu | inst_slt | inst_sltiu | inst_sllv| inst_srlv 
                                 ;
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal | inst_jalr | inst_bltzal | inst_bgezal;
@@ -479,26 +479,32 @@ module ID(
 
 
     // regfile store enable
-    assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_jal | inst_addu| inst_sll | 
-                    inst_or | inst_xor | inst_lw | 
-                    inst_add | inst_addi | inst_sub | inst_slt | inst_slti | inst_sltu | inst_sltiu| inst_jalr|
-                    inst_jr| inst_and | inst_andi | inst_nor | inst_sra | inst_srl | inst_srlv | inst_srav;
+    assign rf_we =  inst_ori | inst_lui | inst_addiu | inst_subu | inst_addu | inst_add | inst_addi | inst_sub |
+                    inst_jr | inst_jal |  inst_sll | inst_sllv | inst_sra | inst_srl | inst_srlv | inst_srav|
+                    inst_or | inst_xor | inst_xori | inst_and | inst_andi | inst_nor |
+                    inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu |
+                    inst_slt | inst_slti | inst_sltu | inst_sltiu| inst_jalr
+                     ;
 
 
 
     // store in [rd]
-    assign sel_rf_dst[0] =  inst_sub |inst_subu | inst_addu | inst_sll | inst_or | inst_xor | inst_add |  
+    assign sel_rf_dst[0] =  inst_sub |inst_subu | inst_addu |  inst_add |
+                            inst_and | inst_nor | inst_or | inst_xor |
                             inst_slt | inst_sltu |
-                            inst_and | inst_nor | inst_sra | inst_srl | inst_srlv | inst_srav |inst_sllv ;
+                            inst_jalr | 
+                            inst_sra | inst_srl | inst_srlv | inst_srav | inst_sll | inst_sllv ;
     
     
     // store in [rt] 
     assign sel_rf_dst[1] =  inst_ori | inst_lui | inst_addiu | inst_lw | inst_addi | inst_slti | inst_sltiu |
-                            inst_andi | inst_xori     ;
+                            inst_andi | inst_xori |      
+                            inst_lb |inst_lbu | inst_lh | inst_lhu
+                            ;
     
     
     // store in [31]
-    assign sel_rf_dst[2] = inst_jal | inst_jalr;
+    assign sel_rf_dst[2] = inst_jal | inst_jalr | inst_bltzal | inst_bgezal;
 
     // sel for regfile address
     assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
@@ -543,18 +549,20 @@ module ID(
                    
             
     assign br_addr = 
-                        (inst_beq       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_jr        ? ndata1 : 32'b0) |
-                        (inst_jal       ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0) |
-                        (inst_bne       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_bgez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_bgtz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_blez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_bltz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_bgezal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_bltzal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0) |
-                        (inst_j         ? ({ pc_plus_4[31:28]         ,inst[25:0],2'b0}) : 32'b0) |
-                        (inst_jalr      ? ndata1:32'b0);
+                        (inst_beq       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_jr        ? ndata1 : 32'b0)                                           |
+                        (inst_jal       ? {pc_plus_4[31:28],instr_index,2'b0} : 32'b0)              |
+                        (inst_j         ? ({ pc_plus_4[31:28],inst[25:0],2'b0}) : 32'b0)            |
+                        (inst_jalr      ? ndata1:32'b0)                                             |
+                                               
+                        (inst_bne       ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_bgez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_bgtz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_blez      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_bltz      ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_bgezal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)   |
+                        (inst_bltzal    ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0)
+                        ;
 
     assign id_load_bus = {
         inst_lb,
