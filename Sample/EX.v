@@ -235,16 +235,16 @@ module EX(
 
     assign mul_signed = inst_mult;
 
-    reg [31:0] mul_ina;
-    reg [31:0] mul_inb;
+    // reg [31:0] mul_ina;
+    // reg [31:0] mul_inb;
 
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (mul_ina        ), // 乘法源操作数1
-        .inb        (mul_inb        ), // 乘法源操作数2
+        .ina        (rf_rdata1        ), // 乘法源操作数1
+        .inb        (rf_rdata2        ), // 乘法源操作数2
         .result     (mul_result     ) // 乘法结果 64bit
     );
 
