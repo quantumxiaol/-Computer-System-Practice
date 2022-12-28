@@ -19,6 +19,8 @@ module MEM(
 
     input wire [`LoadBus-1:0] ex_load_bus,
 
+    output wire stallreq_for_load,
+
     output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
 
     output wire [`MEM_TO_RF_WD-1:0] mem_to_rf_bus
@@ -85,15 +87,26 @@ module MEM(
         inst_lw//0
     } = ex_load_bus_r;
 
-    assign rf_wdata = sel_rf_res ? mem_result : ex_result;
 
-    assign mem_result = data_ram_en ? data_sram_rdata : 32'b0;
 
-    assign b_data = 8'b0;
-    assign h_data = 16'b0;
+    assign b_data = data_ram_sel[3] ? data_sram_rdata[31:24] : 
+                    data_ram_sel[2] ? data_sram_rdata[23:16] :
+                    data_ram_sel[1] ? data_sram_rdata[15: 8] : 
+                    data_ram_sel[0] ? data_sram_rdata[ 7: 0] : 8'b0;
+    assign h_data = data_ram_sel[2] ? data_sram_rdata[31:16] :
+                    data_ram_sel[0] ? data_sram_rdata[15: 0] : 16'b0;
     assign w_data = data_sram_rdata;
 
+    assign mem_result = inst_lb     ? {{24{b_data[7]}},b_data} :
+                        inst_lbu    ? {{24{1'b0}},b_data} :
+                        inst_lh     ? {{16{h_data[15]}},h_data} :
+                        inst_lhu    ? {{16{1'b0}},h_data} :
+                        inst_lw     ? w_data : 32'b0; 
+
+    assign rf_wdata = sel_rf_res & data_ram_en ? mem_result : ex_result;
+
     assign mem_to_wb_bus = {
+        
         mem_pc,     // 69:38
         rf_we,      // 37
         rf_waddr,   // 36:32

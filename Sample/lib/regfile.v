@@ -10,12 +10,12 @@ module regfile(
     input wire [4:0] waddr,
     input wire [31:0] wdata
 );
-    reg [31:0] reg_array [31:0];
+    reg [31:0] reg_array [31:0];  
     // write
     always @ (posedge clk) begin
         if (we && waddr!=5'b0) begin
             reg_array[waddr] <= wdata;
-        end
+        end 
     end
 
     // read out 1
