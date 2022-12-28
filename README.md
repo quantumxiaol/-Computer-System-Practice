@@ -42,13 +42,21 @@ Dec 11 Liu  添加了/lib/decoder_2_4
 Dec 26 Liu  添加了缺失的逻辑运算指令的实现
             添加Stall，多过了1条指令。
 
+Dec 26 Li   参与了Stall的设计。
+
+Dec 26 Wang 确认了Stall的工作情况。
+
 Dec 27 Liu  验证跳转指令，修改sel_alu_src，在验证8'd36中出现环路，模拟无法停止，
             猜测代码因为逻辑环路导致某个寄存器的值在一个时钟周期内反复横跳无法仿真，
             或者是一些奇奇怪怪的写回情况会导致仿真程序一直运行下去。
 
+Dec 27 Li   参与了跳转指令的添加。
+
 Dec 27 Liu  添加hi lo寄存器 hi_lo_reg.v，
-            数据移动指令（mfhi，mflo，mthi，mtlo）,
+            数据移动指令（mfhi，mflo，mthi，mtlo），
             完善除法。到达8'd45。
+
+Dec 27 Wang 参与了hi lo寄存器。
 
 Dec 27 Liu  完善乘法。到达8'd58。
 
