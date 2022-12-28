@@ -106,6 +106,31 @@ module EX(
     wire inst_lb, inst_lbu, inst_lh, inst_lhu, inst_lw;
     wire inst_sb, inst_sh, inst_sw;
 
+    wire inst_mfhi, inst_mflo, inst_mthi, inst_mtlo;
+    wire inst_mult, inst_multu;
+    wire inst_div, inst_divu;
+
+    wire [31:0] hi;
+    wire [31:0] lo;
+    wire hi_we;
+    wire lo_we;
+    wire [31:0] hi_wdata;
+    wire [31:0] lo_wdata;
+
+    assign {
+        inst_mfhi,
+        inst_mflo,
+        inst_mthi,
+        inst_mtlo,
+        inst_mult,
+        inst_multu,
+        inst_div,
+        inst_divu,
+        hi,
+        lo
+    }= id_hi_lo_bus_r;
+
+
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
 
@@ -114,15 +139,15 @@ module EX(
                       sel_alu_src2[3] ? imm_zero_extend : rf_rdata2;
     
     alu u_alu(
-    	.alu_control (alu_op ),
+    	.alu_control (alu_op      ),
         .alu_src1    (alu_src1    ),
         .alu_src2    (alu_src2    ),
         .alu_result  (alu_result  )
     );
 
-    // assign ex_result =  inst_mfhi ? hi :
-    //                     inst_mflo ? lo :
-    //                     alu_result;
+    assign ex_result =  inst_mfhi ? hi :
+                        inst_mflo ? lo :
+                        alu_result;
 
     decoder_2_4 u_decoder_2_4(
         .in  (ex_result[1:0]),
@@ -179,48 +204,29 @@ module EX(
                             inst_sh | inst_lh | inst_lhu ? {{2{byte_sel[2]}},{2{byte_sel[0]}}} :
                             inst_sw | inst_lw ? 4'b1111 : 4'b0000;    
     assign data_sram_en = data_ram_en;
-    // assign data_sram_wen = {4{data_ram_wen}} & data_ram_sel;
+    // 根据写地址的最低两位addr[1:0]判断    
+    assign data_sram_wen = {4{data_ram_wen}} & data_ram_sel;
     // 1号点后问题应该在写入数据上
-    assign data_sram_wen = inst_sw ? 4'b1111:
-                        inst_sb & alu_result[1:0]==2'b00 ? 4'b0001:
-                        inst_sb & alu_result[1:0]==2'b01 ? 4'b0010:
-                        inst_sb & alu_result[1:0]==2'b10 ? 4'b0100:
-                        inst_sb & alu_result[1:0]==2'b11 ? 4'b1000:
-                        inst_sh & alu_result[1:0]==2'b00 ? 4'b0011:
-                        inst_sh & alu_result[1:0]==2'b10 ? 4'b1100:
-                        4'b0000;
+
+    // assign data_sram_wen = inst_sw ? 4'b1111:
+    //                     inst_sb & alu_result[1:0]==2'b00 ? 4'b0001:
+    //                     inst_sb & alu_result[1:0]==2'b01 ? 4'b0010:
+    //                     inst_sb & alu_result[1:0]==2'b10 ? 4'b0100:
+    //                     inst_sb & alu_result[1:0]==2'b11 ? 4'b1000:
+    //                     inst_sh & alu_result[1:0]==2'b00 ? 4'b0011:
+    //                     inst_sh & alu_result[1:0]==2'b10 ? 4'b1100:
+    //                     4'b0000;
     assign data_sram_addr = ex_result;
     assign data_sram_wdata  =   inst_sb ? {4{rf_rdata2[7:0]}}  :
                                 inst_sh ? {2{rf_rdata2[15:0]}} : rf_rdata2;
 
-    wire inst_mfhi, inst_mflo, inst_mthi, inst_mtlo;
-    wire inst_mult, inst_multu, inst_div, inst_divu;
-
-    wire [31:0] hi;
-    wire [31:0] lo;
-    wire hi_we;
-    wire lo_we;
-    wire [31:0] hi_wdata;
-    wire [31:0] lo_wdata;
-
-    assign {
-        inst_mfhi,
-        inst_mflo,
-        inst_mthi,
-        inst_mtlo,
-        inst_mult,
-        inst_multu,
-        inst_div,
-        inst_divu,
-        hi,
-        lo
-    }= id_hi_lo_bus_r;
 
 
 
-    assign ex_result =  inst_mfhi ? hi :
-                        inst_mflo ? lo :
-                        alu_result;
+
+    // assign ex_result =  inst_mfhi ? hi :
+    //                     inst_mflo ? lo :
+    //                     alu_result;
 
     assign ex_hi_lo_bus = {
         hi_we,
@@ -347,9 +353,10 @@ module EX(
     assign hi_we = inst_mthi | inst_mult | inst_multu | inst_div | inst_divu;
     assign lo_we = inst_mtlo | inst_mult | inst_multu | inst_div | inst_divu;
 
+    // 以乘法作为示例，如果两个整数相乘，那么乘法的结果低位保存在lo寄存器，高位保存在hi寄存器。
     assign hi_wdata = inst_mthi ? rf_rdata1 :
-                      inst_mult |inst_multu ? mul_result[63:32] :
-                      inst_div |inst_divu ? div_result[63:32] :
+                      inst_mult | inst_multu ? mul_result[63:32] :
+                      inst_div | inst_divu ? div_result[63:32] :
                       32'b0;
 
     assign lo_wdata = inst_mtlo ? rf_rdata1 :
