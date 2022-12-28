@@ -50,5 +50,11 @@ Dec 27 Liu  添加hi lo寄存器 hi_lo_reg.v，
             数据移动指令（mfhi，mflo，mthi，mtlo）,
             完善除法。到达8'd45。
 
-            完善乘法。到达8'd58。
+Dec 27 Liu  完善乘法。到达8'd58。
+
+Dec 28 Liu  修正访存指令（lb、lbu、lh、lhu、sb、sh）。
+            8'd59是对lb指令的验证。
+            修正了b_data、h_data，选择信号由data_ram_sel变为data_ram_sel_r。
+            通过8'd64。
+
 

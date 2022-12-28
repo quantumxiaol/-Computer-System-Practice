@@ -138,13 +138,17 @@ module ID(
 //  数据相关
     assign ndata1 = ((ex_rf_we && rs == ex_rf_waddr) ? ex_rf_wdata : 32'b0) | 
                    ((!(ex_rf_we && rs == ex_rf_waddr) && (mem_rf_we && rs == mem_rf_waddr)) ? mem_rf_wdata : 32'b0) |
-                   ((!(ex_rf_we && rs == ex_rf_waddr) && !(mem_rf_we && rs == mem_rf_waddr) && (wb_rf_we && rs == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
-                   (((ex_rf_we && rs == ex_rf_waddr) || (mem_rf_we && rs == mem_rf_waddr) || (wb_rf_we && rs == wb_rf_waddr)) ? 32'b0 : rdata1);
+                   ((!(ex_rf_we && rs == ex_rf_waddr) && 
+                    !(mem_rf_we && rs == mem_rf_waddr) && (wb_rf_we && rs == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
+                   (((ex_rf_we && rs == ex_rf_waddr) || (mem_rf_we && rs == mem_rf_waddr) ||
+                     (wb_rf_we && rs == wb_rf_waddr)) ? 32'b0 : rdata1);
 
     assign ndata2 = ((ex_rf_we && rt == ex_rf_waddr) ? ex_rf_wdata : 32'b0) | 
                    ((!(ex_rf_we && rt == ex_rf_waddr) && (mem_rf_we && rt == mem_rf_waddr)) ? mem_rf_wdata : 32'b0) |
-                   ((!(ex_rf_we && rt == ex_rf_waddr) && !(mem_rf_we && rt == mem_rf_waddr) && (wb_rf_we && rt == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
-                   (((ex_rf_we && rt == ex_rf_waddr) || (mem_rf_we && rt == mem_rf_waddr) || (wb_rf_we && rt == wb_rf_waddr)) ? 32'b0 : rdata2);
+                   ((!(ex_rf_we && rt == ex_rf_waddr) &&
+                     !(mem_rf_we && rt == mem_rf_waddr) && (wb_rf_we && rt == wb_rf_waddr)) ? wb_rf_wdata : 32'b0) |
+                   (((ex_rf_we && rt == ex_rf_waddr) || (mem_rf_we && rt == mem_rf_waddr) ||
+                     (wb_rf_we && rt == wb_rf_waddr)) ? 32'b0 : rdata2);
 
     regfile u_regfile(
     	.clk    (clk    ),
@@ -154,13 +158,8 @@ module ID(
         .rdata2 (rdata2 ),
         .we     (wb_rf_we     ),
         .waddr  (wb_rf_waddr  ),
-        .wdata  (wb_rf_wdata  )//,
-        // .hi_we    (hi_we      ),
-        // .lo_we    (lo_we      ),
-        // .hi_wdata (hi_wdata   ),
-        // .lo_wdata (lo_wdata   ),
-        // .hi_rdata (hi_rdata   ),
-        // .lo_rdata (lo_rdata   )
+        .wdata  (wb_rf_wdata  )
+
 
     );
 
@@ -486,7 +485,7 @@ module ID(
 
 
     // rs to reg1
-    assign sel_alu_src1[0] =    inst_lw | inst_sw |inst_lb| inst_lbu  | inst_lh | inst_lhu| inst_sb | inst_sh |
+    assign sel_alu_src1[0] =    inst_lw | inst_sw | inst_lb | inst_lbu  | inst_lh | inst_lhu| inst_sb | inst_sh |
                                 inst_ori | inst_addiu | inst_or | inst_xor | inst_and  | inst_andi| inst_nor | inst_xori |
                                 inst_sub | inst_subu | inst_add | inst_addi | inst_addu |
                                 inst_jr | inst_bgezal | inst_bltzal |
@@ -507,8 +506,8 @@ module ID(
                                 inst_div | inst_divu |inst_mult | inst_multu;
     
     // imm_sign_extend to reg2
-    assign sel_alu_src2[1] =    inst_lui | inst_addiu | inst_lw | inst_sw | inst_slti| inst_sltiu | inst_addi | 
-                                inst_lb  | inst_lbu   | inst_lh  | inst_lhu | inst_sh | inst_sb;
+    assign sel_alu_src2[1] =    inst_lui | inst_addiu | inst_slti|  inst_sltiu | inst_addi | 
+                                inst_lw | inst_sw | inst_lb  | inst_lbu   | inst_lh  | inst_lhu | inst_sh | inst_sb;
 
     // 32'b8 to reg2
     assign sel_alu_src2[2] = inst_jal | inst_jalr | inst_bgezal | inst_bltzal;
@@ -520,7 +519,8 @@ module ID(
 
     assign op_add = inst_add | inst_addi | inst_addiu |  inst_addu |  inst_add | inst_addi |
                     inst_jal | inst_jalr | inst_bltzal | inst_bgezal |
-                    inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_sw | inst_sb | inst_sh
+                    inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu |
+                    inst_sw | inst_sb | inst_sh
                     ;
 
     assign op_sub = inst_subu | inst_sub;
@@ -575,9 +575,9 @@ module ID(
     
     
     // store in [rt] 
-    assign sel_rf_dst[1] =  inst_ori | inst_lui | inst_addiu | inst_lw | inst_addi | inst_slti | inst_sltiu |
+    assign sel_rf_dst[1] =  inst_ori | inst_lui | inst_addiu | inst_addi | inst_slti | inst_sltiu |
                             inst_andi | inst_xori |      
-                            inst_lb |inst_lbu | inst_lh | inst_lhu
+                            inst_lw | inst_lb |inst_lbu | inst_lh | inst_lhu
                             ;
     
     
@@ -585,9 +585,9 @@ module ID(
     assign sel_rf_dst[2] = inst_jal | inst_jalr | inst_bltzal | inst_bgezal;
 
     // sel for regfile address
-    assign rf_waddr = {5{sel_rf_dst[0]}} & rd 
-                    | {5{sel_rf_dst[1]}} & rt
-                    | {5{sel_rf_dst[2]}} & 32'd31;
+    assign rf_waddr = {5{sel_rf_dst[0]}} & rd |
+                      {5{sel_rf_dst[1]}} & rt |
+                      {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
     assign sel_rf_res = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu ? 1'b1:1'b0; 
