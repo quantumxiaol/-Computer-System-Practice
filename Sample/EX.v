@@ -22,11 +22,16 @@ module EX(
     // 
     output wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus,
 
+    input wire [71:0] id_hi_lo_bus,
+    output wire [65:0] ex_hi_lo_bus,
+
+    output wire stallreq_for_ex,
+
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
     output wire [31:0] data_sram_addr,
     output wire [31:0] data_sram_wdata,
-
+    output wire ex_id,
     output wire [3:0] data_ram_sel,
     output wire [`LoadBus-1:0] ex_load_bus
 );
@@ -35,12 +40,13 @@ module EX(
 
     reg [`LoadBus-1:0] id_load_bus_r;
     reg [`SaveBus-1:0] id_save_bus_r;
-
+    reg [71:0] id_hi_lo_bus_r;
     always @ (posedge clk) begin
         if (rst) begin
             id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
             id_save_bus_r <= `SaveBus'b0;
             id_load_bus_r <= `LoadBus'b0;
+            id_hi_lo_bus_r <= 71'b0;
         end
         // else if (flush) begin
         //     id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
@@ -49,11 +55,13 @@ module EX(
             id_to_ex_bus_r <= `ID_TO_EX_WD'b0;
             id_save_bus_r <= `SaveBus'b0;
             id_load_bus_r <= `LoadBus'b0;
+            id_hi_lo_bus_r <= 71'b0;
         end
         else if (stall[2]==`NoStop) begin
             id_to_ex_bus_r <= id_to_ex_bus;
             id_save_bus_r <= id_save_bus;
             id_load_bus_r <= id_load_bus;
+            id_hi_lo_bus_r <= id_hi_lo_bus;
         end
     end
 
@@ -68,6 +76,9 @@ module EX(
     wire sel_rf_res;
     wire [31:0] rf_rdata1, rf_rdata2;
     reg is_in_delayslot;
+    wire [3:0] byte_sel;
+
+
 
     assign {
         ex_pc,          // 158:127
@@ -95,6 +106,31 @@ module EX(
     wire inst_lb, inst_lbu, inst_lh, inst_lhu, inst_lw;
     wire inst_sb, inst_sh, inst_sw;
 
+    wire inst_mfhi, inst_mflo, inst_mthi, inst_mtlo;
+    wire inst_mult, inst_multu;
+    wire inst_div, inst_divu;
+
+    wire [31:0] hi;
+    wire [31:0] lo;
+    wire hi_we;
+    wire lo_we;
+    wire [31:0] hi_wdata;
+    wire [31:0] lo_wdata;
+
+    assign {
+        inst_mfhi,
+        inst_mflo,
+        inst_mthi,
+        inst_mtlo,
+        inst_mult,
+        inst_multu,
+        inst_div,
+        inst_divu,
+        hi,
+        lo
+    }= id_hi_lo_bus_r;
+
+
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
 
@@ -103,15 +139,23 @@ module EX(
                       sel_alu_src2[3] ? imm_zero_extend : rf_rdata2;
     
     alu u_alu(
-    	.alu_control (alu_op ),
+    	.alu_control (alu_op      ),
         .alu_src1    (alu_src1    ),
         .alu_src2    (alu_src2    ),
         .alu_result  (alu_result  )
     );
 
-    assign ex_result = alu_result;
+    assign ex_result =  inst_mfhi ? hi :
+                        inst_mflo ? lo :
+                        alu_result;
+
+    decoder_2_4 u_decoder_2_4(
+        .in  (ex_result[1:0]),
+        .out (byte_sel      )
+    );
 
     assign ex_to_mem_bus = {
+
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -121,6 +165,9 @@ module EX(
         ex_result       // 31:0
     };
 
+    assign ex_id = sel_rf_res;
+
+    // forwording
     assign ex_to_rf_bus = {
 
         rf_we,          // 37
@@ -152,28 +199,58 @@ module EX(
         inst_lw
     };
 
-    assign data_ram_sel = inst_lw | inst_sw ? 4'b1111 : 4'b0000;
+    // assign data_ram_sel = inst_lw | inst_sw ? 4'b1111 : 4'b0000;
+    assign data_ram_sel =   inst_sb | inst_lb | inst_lbu ? byte_sel :
+                            inst_sh | inst_lh | inst_lhu ? {{2{byte_sel[2]}},{2{byte_sel[0]}}} :
+                            inst_sw | inst_lw ? 4'b1111 : 4'b0000;    
     assign data_sram_en = data_ram_en;
+    // 根据写地址的最低两位addr[1:0]判断    
     assign data_sram_wen = {4{data_ram_wen}} & data_ram_sel;
+    // 1号点后问题应该在写入数据上
+
+    // assign data_sram_wen = inst_sw ? 4'b1111:
+    //                     inst_sb & alu_result[1:0]==2'b00 ? 4'b0001:
+    //                     inst_sb & alu_result[1:0]==2'b01 ? 4'b0010:
+    //                     inst_sb & alu_result[1:0]==2'b10 ? 4'b0100:
+    //                     inst_sb & alu_result[1:0]==2'b11 ? 4'b1000:
+    //                     inst_sh & alu_result[1:0]==2'b00 ? 4'b0011:
+    //                     inst_sh & alu_result[1:0]==2'b10 ? 4'b1100:
+    //                     4'b0000;
     assign data_sram_addr = ex_result;
-    assign data_sram_wdata = rf_rdata2;
+    assign data_sram_wdata  =   inst_sb ? {4{rf_rdata2[7:0]}}  :
+                                inst_sh ? {2{rf_rdata2[15:0]}} : rf_rdata2;
 
 
+
+
+
+    // assign ex_result =  inst_mfhi ? hi :
+    //                     inst_mflo ? lo :
+    //                     alu_result;
+
+    assign ex_hi_lo_bus = {
+        hi_we,
+        lo_we,
+        hi_wdata,
+        lo_wdata
+    };
 
     // MUL part
     wire [63:0] mul_result;
     wire mul_signed; // 有符号乘法标记
 
-    reg [31:0] mul_ina;
-    reg [31:0] mul_inb;
+    assign mul_signed = inst_mult;
+
+    // reg [31:0] mul_ina;
+    // reg [31:0] mul_inb;
 
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (mul_ina        ), // 乘法源操作数1
-        .inb        (mul_inb        ), // 乘法源操作数2
+        .ina        (rf_rdata1        ), // 乘法源操作数1
+        .inb        (rf_rdata2        ), // 乘法源操作数2
         .result     (mul_result     ) // 乘法结果 64bit
     );
 
@@ -273,5 +350,19 @@ module EX(
 
     // mul_result 和 div_result 可以直接使用
     
+    assign hi_we = inst_mthi | inst_mult | inst_multu | inst_div | inst_divu;
+    assign lo_we = inst_mtlo | inst_mult | inst_multu | inst_div | inst_divu;
+
+    // 以乘法作为示例，如果两个整数相乘，那么乘法的结果低位保存在lo寄存器，高位保存在hi寄存器。
+    assign hi_wdata = inst_mthi ? rf_rdata1 :
+                      inst_mult | inst_multu ? mul_result[63:32] :
+                      inst_div | inst_divu ? div_result[63:32] :
+                      32'b0;
+
+    assign lo_wdata = inst_mtlo ? rf_rdata1 :
+                      inst_mult | inst_multu ? mul_result[31:0] :
+                      inst_div | inst_divu ? div_result[31:0] :
+                      32'b0;
+
     
 endmodule
