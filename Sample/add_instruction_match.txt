@@ -61,7 +61,7 @@ assign matched ={
 ~(match_rt[18:11]^match_rs),~(match_rt[17:10]^match_rs),~(match_rt[16:9]^match_rs),
 ~(match_rt[15:8]^match_rs),~(match_rt[14:7]^match_rs),~(match_rt[13:6]^match_rs),
 ~(match_rt[12:5]^match_rs),~(match_rt[11:4]^match_rs),~(match_rt[10:3]^match_rs),
-~(match_rt[9:2]^match_rs),~(match_rt[8:1]^match_rs),~(match_rt[7:0]^match_rs)} 
+~(match_rt[9:2]^match_rs),~(match_rt[8:1]^match_rs),~(match_rt[7:0]^match_rs)} ;
 //也可以用一个decoder
 
 assign match_result = 
@@ -72,6 +72,6 @@ matched[12]? 32’d12 :matched[13]? 32’d13 : matched[14]? 32’d14 : matched[1
 matched[16]? 32’d16 :matched[17]? 32’d17 : matched[18]? 32’d18 : matched[19]? 32’d19 : 
 matched[20]? 32’d20 :matched[21]? 32’d22 : matched[22]? 32’d22 : matched[23]? 32’d23 :  
 matched[24]? 32’d24 :matched[25]? 32’d25 : 
-32’hffffffff
+32’hffffffff;
 
-assign alu_result = |({32{op_match         }} &match_result)
+assign alu_result = |({32{op_match         }} &match_result);
