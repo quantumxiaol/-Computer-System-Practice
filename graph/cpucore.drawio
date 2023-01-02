@@ -68,8 +68,10 @@
                         <mxPoint x="20" y="1200" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="47" value="&lt;span style=&quot;color: rgb(240 , 240 , 240) ; font-family: &amp;#34;helvetica&amp;#34; ; font-size: 18px ; font-style: normal ; font-weight: 400 ; letter-spacing: normal ; text-align: center ; text-indent: 0px ; text-transform: none ; word-spacing: 0px ; background-color: rgb(42 , 42 , 42) ; display: inline ; float: none&quot;&gt;data_sram_rdata&lt;/span&gt;" style="edgeLabel;resizable=0;html=1;align=center;verticalAlign=middle;fontSize=18;" connectable="0" vertex="1" parent="46">
-                    <mxGeometry relative="1" as="geometry"/>
+                <mxCell id="184" value="data_sram_rdata" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=18;" vertex="1" connectable="0" parent="46">
+                    <mxGeometry x="-0.2653" y="4" relative="1" as="geometry">
+                        <mxPoint x="22" y="4" as="offset"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="48" value="" style="endArrow=classic;html=1;fontSize=18;" edge="1" parent="1">
                     <mxGeometry relative="1" as="geometry">
