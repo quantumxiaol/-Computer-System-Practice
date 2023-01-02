@@ -1,0 +1,77 @@
+如何在cpu中添加match指令?
+(match rd, rs, rt)
+(011100 rs rt rd 11100 110111)
+Match进行01 串匹配查找操作。将 rt 寄存器里的 bit[31:0]视作 0 和 1 做成的字符串，使用 rs 寄存器里的 bit[7:0]作为匹配串，从低向高 进行查找匹配。如果在 rt 寄存器里匹配到了对应的 01 字符串，则输出匹配到的位置到 rd 寄存器；如果 没有匹配到，则输出 0xffffffff（表示-1）到 rd 寄存器。
+操作定义： GPR[rd] ← match_from_0_to_31( GPR[rt], GPR[rs] )
+举例：
+1. GPR[$3]=0x1234563c，GPR[$2]=0x12345678，则执行“match $5, $3, $2”指令后，GPR[$5]=0x1。
+2. GPR[$3]=0x12345634，GPR[$2]=0x12341234，则执行“match $5, $3, $2”指令后，GPR[$5]=0x0。
+3. GPR[$3]=0x12345637，GPR[$2]=0x12345678，则执行“match $5, $3, $2”指令后，GPR[$5]=0xffffffff。
+
+
+
+/ID.v
+
+wire inst_match;// 将 rt 寄存器里的 bit[31:0]视作 0 和 1 做成的字符串，
+                // 使用 rs 寄存器里的 bit[7:0]作为匹配串，从低向高进行查找匹配。
+                // 如果在 rt 寄存器里匹配到了对应的 01 字符串，
+                // 则输出匹配到的位置到 rd 寄存器；如果没有匹配到，
+                // 则输出 0xffffffff（表示-1）到 rd 寄存器
+
+assign inst_match   = op_d[6'b01_1100] & func_d[6'b11_0111] &  sa_d[5'b1_1100];
+
+assign alu_op = {op_match};
+
+// rs to reg1
+assign sel_alu_src1[0] = inst_match;
+
+// rt to reg2
+assign sel_match_rt[0] = inst_match;
+
+// regfile store enable
+assign rf_we = inst_match;
+
+// store in [rd]
+assign sel_rf_dst[0] = |inst_match;
+
+
+
+/lib/ALU.v
+
+wire op_match;
+assign {op_match}= alu_control;
+
+wire [31:0] match_result;
+wire [7:0] match_rs;
+wire [31:0] match_rt;
+wire [24:0] matched;
+
+//标记位置
+assign matched = 25’b0;
+assign match_rs = alu_src1[7:0];
+assign match_rt = alu_src2;
+
+//标记匹配的位置
+assign matched ={
+~(match_rt[31:24]^match_rs),
+~(match_rt[30:23]^match_rs),~(match_rt[29:22]^match_rs),~(match_rt[28:21]^match_rs),
+~(match_rt[27:20]^match_rs),~(match_rt[26:19]^match_rs),~(match_rt[25:18]^match_rs),
+~(match_rt[24:17]^match_rs),~(match_rt[23:16]^match_rs),~(match_rt[22:15]^match_rs),
+~(match_rt[21:14]^match_rs),~(match_rt[20:13]^match_rs),~(match_rt[19:12]^match_rs),
+~(match_rt[18:11]^match_rs),~(match_rt[17:10]^match_rs),~(match_rt[16:9]^match_rs),
+~(match_rt[15:8]^match_rs),~(match_rt[14:7]^match_rs),~(match_rt[13:6]^match_rs),
+~(match_rt[12:5]^match_rs),~(match_rt[11:4]^match_rs),~(match_rt[10:3]^match_rs),
+~(match_rt[9:2]^match_rs),~(match_rt[8:1]^match_rs),~(match_rt[7:0]^match_rs)} ;
+//也可以用一个decoder
+
+assign match_result = 
+matched[0]? 32’d0 : matched[1]? 32’d1 :matched[2]? 32’d2 : matched[3]? 32’d3 : 
+matched[4]? 32’d4 : matched[5]? 32’d5 : matched[6]? 32’d6 : matched[7]? 32’d7 : 
+matched[8]? 32’d8 : matched[9]? 32’d9 : matched[10]? 32’d10 : matched[11]? 32’d11 : 
+matched[12]? 32’d12 :matched[13]? 32’d13 : matched[14]? 32’d14 : matched[15]? 32’d15 : 
+matched[16]? 32’d16 :matched[17]? 32’d17 : matched[18]? 32’d18 : matched[19]? 32’d19 : 
+matched[20]? 32’d20 :matched[21]? 32’d22 : matched[22]? 32’d22 : matched[23]? 32’d23 :  
+matched[24]? 32’d24 :matched[25]? 32’d25 : 
+32’hffffffff;
+
+assign alu_result = |({32{op_match         }} &match_result);
