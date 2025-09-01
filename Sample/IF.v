@@ -29,13 +29,13 @@ module IF(
     wire [31:0] next_pc;
     wire br_e;
     wire [31:0] br_addr;
-
+// 转移信息
     assign {
         br_e,
         br_addr
     } = br_bus;
 
-//时序逻辑
+// 时序逻辑
     always @ (posedge clk) begin
         if (rst) begin
             pc_reg <= 32'hbfbf_fffc;
